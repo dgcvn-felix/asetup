@@ -1,11 +1,10 @@
 #!/bin/bash
 # AnetHRM Community - Quick Install
-# Usage: curl -fsSL https://dl.yourcompany.com/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/dgcvn-felix/asetup/main/install.sh | bash
 
 set -euo pipefail
 
-# UPDATE THIS URL
-BINARY_URL="${HRM_URL:-https://YOUR_SERVER.com/hrm-deploy}"
+BINARY_URL="https://raw.githubusercontent.com/dgcvn-felix/asetup/main/hrm-deploy"
 
 echo ""
 echo "  Installing AnetHRM Community..."

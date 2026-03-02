@@ -1,11 +1,13 @@
 #!/bin/bash
 # AnetHRM Community - Quick Install & Auto-Update
-# Usage: curl -fsSL https://raw.githubusercontent.com/dgcvn-felix/asetup/main/install.sh | bash
-
+#
+# Fresh install:  curl -fsSL .../install.sh | bash
+# Update only:    curl -fsSL .../install.sh | bash -s -- --update
+#
 set -euo pipefail
 
 BASE_URL="https://raw.githubusercontent.com/dgcvn-felix/asetup/main"
-INSTALL_DIR="${1:-$(pwd)}"
+INSTALL_DIR="$(pwd)"
 BINARY_NAME="hrm-deploy"
 VERSION_FILE="$INSTALL_DIR/${BINARY_NAME}.version.local"
 
@@ -30,24 +32,30 @@ if [[ -f "$VERSION_FILE" ]]; then
     LOCAL_VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
 fi
 
+# Detect: fresh install or existing installation
+IS_FRESH=true
+if [[ -f "$INSTALL_DIR/$BINARY_NAME" ]]; then
+    IS_FRESH=false
+fi
+
 echo "  Remote version: $REMOTE_VERSION"
 echo "  Local version:  ${LOCAL_VERSION:-not installed}"
 
 # Decide whether to download
 NEED_DOWNLOAD=true
-if [[ -f "$INSTALL_DIR/$BINARY_NAME" ]] && [[ -n "$LOCAL_VERSION" ]]; then
-    if [[ "$LOCAL_VERSION" == "$REMOTE_VERSION" ]]; then
-        echo ""
-        echo "  Already up to date (v$LOCAL_VERSION)"
-        NEED_DOWNLOAD=false
-    else
-        echo ""
-        echo "  Update available: $LOCAL_VERSION -> $REMOTE_VERSION"
-    fi
+if ! $IS_FRESH && [[ -n "$LOCAL_VERSION" ]] && [[ "$LOCAL_VERSION" == "$REMOTE_VERSION" ]]; then
+    echo ""
+    echo "  Already up to date (v$LOCAL_VERSION)"
+    NEED_DOWNLOAD=false
 fi
 
 if $NEED_DOWNLOAD; then
-    echo "  Downloading $BINARY..."
+    if $IS_FRESH; then
+        echo "  Downloading $BINARY..."
+    else
+        echo "  Updating: $LOCAL_VERSION -> $REMOTE_VERSION ..."
+    fi
+
     curl -fsSL "$BASE_URL/$BINARY" -o "$INSTALL_DIR/$BINARY_NAME" || {
         echo "  Download failed"; exit 1
     }
@@ -56,10 +64,25 @@ if $NEED_DOWNLOAD; then
     # Save version locally
     echo "$REMOTE_VERSION" > "$VERSION_FILE"
 
-    echo "  Installed v$REMOTE_VERSION"
+    if $IS_FRESH; then
+        echo "  Installed v$REMOTE_VERSION"
+    else
+        echo "  Updated to v$REMOTE_VERSION"
+    fi
 fi
 
 echo ""
 
-# Run it (pass through any extra arguments)
-exec "$INSTALL_DIR/$BINARY_NAME" "$@"
+# Fresh install → run deploy
+# Existing install → only update binary, don't re-deploy
+if $IS_FRESH; then
+    echo "  Starting deployment..."
+    echo ""
+    exec "$INSTALL_DIR/$BINARY_NAME" "$@"
+else
+    echo "  Binary updated. Services are still running."
+    echo ""
+    echo "  To update services:  ./hrm-deploy update"
+    echo "  To check status:     ./hrm-deploy status"
+    echo ""
+fi

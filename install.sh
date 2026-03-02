@@ -33,8 +33,11 @@ if [[ -f "$VERSION_FILE" ]]; then
 fi
 
 # Detect: fresh install or existing installation
+# Check: binary exists OR .env exists OR HRM containers running
 IS_FRESH=true
-if [[ -f "$INSTALL_DIR/$BINARY_NAME" ]]; then
+if [[ -f "$INSTALL_DIR/$BINARY_NAME" ]] || \
+   [[ -f "$INSTALL_DIR/.env" ]] || \
+   docker inspect fibe-api &>/dev/null 2>&1; then
     IS_FRESH=false
 fi
 
